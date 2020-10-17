@@ -1,0 +1,198 @@
+
+
+<!-- <button class='button is-info'(click)='setDiagnosticsOnOff'> -->
+<button class='button is-info'(click)='setDiagnosticsOnOff()'>
+  set diagnostics on/off
+</button>
+
+  <!-- diagnostics on/offy
+</button> -->
+
+<section *ngIf="showDiagHtml" class="bla" >
+  <p>hello from quest component.html <br> </p>
+
+  <textarea class="textarea" rows="3">
+  Taking the questionnaire
+  a. start with an email link, with some creditials baked in
+  or start with the website address sumpin.sumpin.com 
+     for test: https://stupefied-elion-621b07.netlify.app/
+   
+   
+  b. who are you?  how did you get refered here? 
+     (establish user, establish some context about this user)
+      might show a blank sign on page, might show an already-filled-out sign on page.
+      authorize --   what can this user see?  establish what test he will see.
+      store info about this user taking this test on this date.
+      route him to somewhere good.        sign on page will run 'start the questionnaire'.
+   
+   
+  4. Running the questionnaire ==================
+  a. determine  user's progress so far.  What is his questionnaire progress?
+     it's time to show intro
+     it's time to determine which question set to show next.
+     it's time to show a set of questions.
+     it's time to show break
+     it's time to score some sets of questions (which sets?)
+  b. background data capture of answers
+     when he clicks on an answer choice, call a faunaApi (async)
+   
+  hmmmm.. maybe a flow is better?
+  we have an active set of questions that we will ask him.
+  we have stored data on what he already answered.
+  we can see when he is done with the active set of questions.
+  we store an answer (async) after every  answer he gives.
+  
+  no need for looping.  
+  looping (equivalent) is when he clicks an answer.
+  when he clicks an answer, save the answer, then
+  figure out the scoring and question sets,
+  then set curQuest to appear to 'ask another question'.
+ 
+  after all the questions have been asked, answered, and scored,
+  == do final wrap up.  show 'you are done' screen. 
+   
+   
+     intro, break,  finish.
+     make all of these a new question type. 
+     they each have question type, question text, and question format tied to them.
+     they each have a qAnswerLayout for them.  It tells us how we will show him answer choices.
+     they each add to certain scoreboard.
+   
+     or maybe, we don't need a question type.
+     use info about each question (like its aca answer choice array)
+     to format the answer choices on the fly.
+   
+     questool might be a 'Bill Selzer branded' site.
+     The app wont have 'Ed specific' info,
+     except maybe a customer id (like Ed is customer 1)
+     could control addition stuff on the questionnaire;
+     like a customer specific logo.
+     Once Ed is an established customer,
+     if the user got to billzQuestool via an email link,
+      
+     maybe we establish which customer we are working on 
+     by  a querystring in the url.
+     something like:  billzQuestool.com?cust=1
+     or billzQuestool.com?cust=1,qid=2  (first cust, test1)
+   
+   
+  message area:  show status of questionnaire progress. show blank if intro/break/finish.
+    status 
+    askingQuestions 
+    storingAnswers
+    evaluatingAnswers
+    choosingNextQuestions
+
+    scoring is kinda tricky now.
+    we record a user answer as an index to aca.
+    we cant just add the index to some score.
+    like, 
+    yes = index of 0   (but we want to store answer value 1)
+    no = index of 1    (but we want to store answer value 0)
+    somehow we gotta keep a pair of values for one answer choice.
+    like pair up aca index value  with aca scoring value.
+    aca [1,2,3,4,5]  acaScoreVals [1,2,3,4,5]
+    aca [yes,no]  acaScoreVals [1,0]
+    aca [indulge,approve,separate,entertain,weaken]  acaScoreVals[0,1,0,0,0]
+    when he chooses yes it means add 1 to the score.
+    when he chooses indulge it means add 0 to the score.
+    when he chooses approve it means add 1 to the score.
+    a different way to look at it:  how many points should be added to the score, when he chooses a particular answer?
+    you might design it to store the index, and during scoring,
+    use aca to find the matching acaScoreVals.
+    or you might design it to find the matching scorVal when he
+    answers a question.
+  </textarea>
+
+<br>
+<div class=" has-background-primary " >
+  <button class='button is-info'(click)='fetchFauna3()'>fetchFauna3</button>
+  <p> faunaDataQuest: {{ faunaDataQuest }}</p>
+  <p> faunaRef: {{ faunaRef }}</p>
+</div>
+<br>
+
+<div class=" has-background-primary">
+  <button class='button is-info'(click)='fetchFauna4()'>fetchFauna4</button>
+  <p> faunaDataQuest: {{ faunaDataQuest }}</p>
+  <p> faunaRef: {{ faunaRef }}</p>
+</div>
+<br>
+
+<p>
+  aqx is: {{aqx}}  
+  he answered: {{hisAns}}
+</p>
+</section>
+
+<section *ngIf="showQuestHtml" class="hero">
+  <div class="hero-body">
+    <div class="container">
+      <h3 class="subtitle has-text-centered"> {{curPreQuest}}  </h3>
+      <h2 class='title has-text-centered'> {{curQuest}} </h2>
+    </div>
+  </div>
+
+
+</section>
+<div *ngIf="showAnswerGroup1Html" class="columns"> 
+  
+  <div class="column " *ngFor="let x of curAca; let i = index">
+    
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(i)'>{{x}}</button>
+
+  </div>
+    
+</div>
+
+
+
+<div *ngIf="showAnswerGroup2Html" class="columns">  aaanswerGroup2
+  <div class="column ">    
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(1)'>1</button>
+  </div>
+  <div class="column ">    
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(2)'>2</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(3)'>3</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(4)'>4</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(5)'>5</button>
+  </div>
+</div>
+
+<div *ngIf="showAnswerGroup3Html" class="columns"> aaanswerGroup3  
+  <div class="column ">    
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(1)'>1</button>
+  </div>
+  <div class="column ">    
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(2)'>2</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(3)'>3</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(4)'>4</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(5)'>5</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(6)'>6</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(7)'>7</button>
+  </div>
+  <div class="column ">
+    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(8)'>8</button>
+  </div>
+</div>
+
+<div *ngIf="showWrapUpHtml" class=" has-background-primary" >  
+  Thank you for taking this questionnaire.
+  You scored in the top 50.  Congratulations.
+</div>
