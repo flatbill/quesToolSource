@@ -1,81 +1,68 @@
-
-
-<!-- <button class='button is-info'(click)='setDiagnosticsOnOff'> -->
 <button class='button is-info'(click)='setDiagnosticsOnOff()'>
   set diagnostics on/off
 </button>
-
-  <!-- diagnostics on/offy
-</button> -->
 
 <section *ngIf="showDiagHtml" class="bla" >
   <p>hello from quest component.html <br> </p>
 
   <textarea class="textarea" rows="3">
   Taking the questionnaire
-  a. start with an email link, with some creditials baked in
+  a. start with an email link, with some credentials baked in
   or start with the website address sumpin.sumpin.com 
-     for test: https://stupefied-elion-621b07.netlify.app/
-   
+     http://localhost:4200/?cust=1&qid=2&icode=12345
+     https://stupefied-elion-621b07.netlify.app/?cust=1&qid=2&icode=12345
+     batQuest.com?cust=1&qid=2  ( cust is nbr 1, test is nbr 2)
+     setup data for each customer in fauna .
+     like, custId, custName, paidUpYesOrNo, defaultQid
+     read that cust table to see which tests his test takers can run.
+     Similar to InviteCode in the old app URL. 
+     batQuest.com?cust=1,qid=2,inviteCode=90210
+     batQuest.com will be a 'Bill Selzer branded' site, 
+     not specific to Ed,
+     but maybe each cust could have his own logo.
    
   b. who are you?  how did you get refered here? 
      (establish user, establish some context about this user)
       might show a blank sign on page, might show an already-filled-out sign on page.
-      authorize --   what can this user see?  establish what test he will see.
+      authorize --    establish what test he will see.
       store info about this user taking this test on this date.
-      route him to somewhere good.        sign on page will run 'start the questionnaire'.
-   
-   
-  4. Running the questionnaire ==================
-  a. determine  user's progress so far.  What is his questionnaire progress?
-     it's time to show intro
+      sign on page will then launch the questionnaire component.
+
+      ?????  restrict access to only those with an invite code ?????
+      ok for Ed, but what about other customers,
+      who might want to open the test up to others.
+      maybe this should be an attribute of the test,
+      like test47 is invite only.
+
+      hey, when designing test 'control data,
+      we need a table with one row per test id.
+      make sure the test id is unique, not repeated for different customers.
+      like, test47 is for customer harry.  There is no customer besides harry
+      that has a test id of 47.
+
+
+ Running the questionnaire ==================
+   determine a test takers questionnaire progress so far.  
      it's time to determine which question set to show next.
      it's time to show a set of questions.
-     it's time to show break
+     it's time to store one answer and show one question.
      it's time to score some sets of questions (which sets?)
-  b. background data capture of answers
-     when he clicks on an answer choice, call a faunaApi (async)
-   
-  hmmmm.. maybe a flow is better?
-  we have an active set of questions that we will ask him.
-  we have stored data on what he already answered.
-  we can see when he is done with the active set of questions.
-  we store an answer (async) after every  answer he gives.
-  
-  no need for looping.  
+     
+ 
+  no need for javascript looping.  
   looping (equivalent) is when he clicks an answer.
-  when he clicks an answer, save the answer, then
-  figure out the scoring and question sets,
-  then set curQuest to appear to 'ask another question'.
+  to store an answer, call a faunaApi async.
+  after we store an answer,   set curQuest variable.  
+  curQuest is tied to the hmtl in the SPA.
+  This is how we 'ask another question'.
  
   after all the questions have been asked, answered, and scored,
   == do final wrap up.  show 'you are done' screen. 
    
-   
-     intro, break,  finish.
-     make all of these a new question type. 
-     they each have question type, question text, and question format tied to them.
-     they each have a qAnswerLayout for them.  It tells us how we will show him answer choices.
-     they each add to certain scoreboard.
-   
-     or maybe, we don't need a question type.
-     use info about each question (like its aca answer choice array)
-     to format the answer choices on the fly.
-   
-     questool might be a 'Bill Selzer branded' site.
-     The app wont have 'Ed specific' info,
-     except maybe a customer id (like Ed is customer 1)
-     could control addition stuff on the questionnaire;
-     like a customer specific logo.
-     Once Ed is an established customer,
-     if the user got to billzQuestool via an email link,
-      
-     maybe we establish which customer we are working on 
-     by  a querystring in the url.
-     something like:  billzQuestool.com?cust=1
-     or billzQuestool.com?cust=1,qid=2  (first cust, test1)
-   
-   
+  We probably don't need a question type for intro, break,  finish.
+    use each question's aca (answer choice array)
+    to format the answer choices on the fly.
+    
   message area:  show status of questionnaire progress. show blank if intro/break/finish.
     status 
     askingQuestions 
@@ -83,114 +70,113 @@
     evaluatingAnswers
     choosingNextQuestions
 
-    scoring is kinda tricky now.
+    answering and scoring
     we record a user answer as an index to aca.
-    we cant just add the index to some score.
-    like, 
     yes = index of 0   (but we want to store answer value 1)
     no = index of 1    (but we want to store answer value 0)
-    somehow we gotta keep a pair of values for one answer choice.
-    like pair up aca index value  with aca scoring value.
-    aca [1,2,3,4,5]  acaScoreVals [1,2,3,4,5]
-    aca [yes,no]  acaScoreVals [1,0]
-    aca [indulge,approve,separate,entertain,weaken]  acaScoreVals[0,1,0,0,0]
+    we have two sync-ed arrays aca and acaPointVals.
+    this is how we tie each answer choice to a point value.
+    aca [1,2,3,4,5]  acaPointVals [1,2,3,4,5]
+    aca [yes,no]  acaPointVals [1,0]
+    aca [indulge,approve,separate,entertain,weaken]  acaPointVals[0,1,0,0,0]
     when he chooses yes it means add 1 to the score.
     when he chooses indulge it means add 0 to the score.
     when he chooses approve it means add 1 to the score.
-    a different way to look at it:  how many points should be added to the score, when he chooses a particular answer?
-    you might design it to store the index, and during scoring,
-    use aca to find the matching acaScoreVals.
-    or you might design it to find the matching scorVal when he
-    answers a question.
+    in other words,  how many points should be added to the score, 
+    when he chooses a particular answer?
+    Set ansPoints by using hisacs to find the matching PointVal 
+    when he answers a question.  
+    -- Store a bunch of info about his answer to a question.
+    -- Later, during scoring, apply his answers to scoreboards.
+
+
+    faunaDb answer async
+    we might want to keep a variable AnsDbStoreStatus.
+    Set to 'busy' when we call fauna async to store answer.
+    set to 'done' when  fauna tells us the answer is stored OK.
+    Check AnsDbStoreStatus before ya start scoring.
+    that way, all the answers get stored first, 
+    and we wont have weird multi-threading for fauna interaction.
+
+    fauna functions ... just some ideas here...
+
+    fetchOneSetOfQuestions key qid questSet
+    writeOneAnswer
+    do something magical with accumulators and scoreboards
+    fetchQidControlRec
+    fetchThisTestTakersAnswerHistory
+    fetchRules
+    fetchScores
+    fetchQuser
+    fetchCust
+
+    stop writing fauna words in vars and functions,
+    start writing qtDb and ansDb words.
+    fauna is just the database.  for now.
+
+  subset 
+  every question is part of a particular subset.
+  after a round of scoring,
+  we have a list of subsets to include.
+  in other words, we create a filtered list of questions,
+  where each question's subset is in the subsetList.
+  then we ask a round of questions, and get a round of answers.
+  then its time for another round of scoring,
+  to create a list of subsets again.
+  -----
+  repeat this thingie:
+  determine which subsets should be in the next qNa round,
+  grab those questions that fit the subsetList.
+  run a round of qNa,
+  score what was just answered in the qNa round.
+================================================
+answer index1
+which qid 
+which user
+which question
+what testDate
+
+he told us an answer
+he told us a point value
+he told us elapsed time
+================================================
+ 
   </textarea>
 
 <br>
 <div class=" has-background-primary " >
-  <button class='button is-info'(click)='fetchFauna3()'>fetchFauna3</button>
-  <p> faunaDataQuest: {{ faunaDataQuest }}</p>
-  <p> faunaRef: {{ faunaRef }}</p>
+  <button class='button is-info'(click)='fetchQtDbTest3()'>fetchQtDbTest3</button>
+  <p> qtDbDataQuestTxt: {{ qtDbDataQuestTxt }}</p>
+  <p> qtDbRef: {{ qtDbRef }}</p>
 </div>
 <br>
 
-<div class=" has-background-primary">
-  <button class='button is-info'(click)='fetchFauna4()'>fetchFauna4</button>
-  <p> faunaDataQuest: {{ faunaDataQuest }}</p>
-  <p> faunaRef: {{ faunaRef }}</p>
+<div class=" has-background-primary " >
+  <button class='button is-info'(click)='fetchQtDbTest5()'>fetchQtDbTest5</button>
+  <p> bla</p>
+  <p> bla</p>
 </div>
 <br>
 
-<p>
-  aqx is: {{aqx}}  
-  he answered: {{hisAns}}
-</p>
+
 </section>
 
 <section *ngIf="showQuestHtml" class="hero">
   <div class="hero-body">
     <div class="container">
       <h3 class="subtitle has-text-centered"> {{curPreQuest}}  </h3>
-      <h2 class='title has-text-centered'> {{curQuest}} </h2>
+      <h2 class='title has-text-centered'> {{curQuestTxt}} </h2>
     </div>
   </div>
+</section >
 
-
-</section>
-<div *ngIf="showAnswerGroup1Html" class="columns"> 
-  
+<div *ngIf="showAnswerGroupHtml" class="columns box "> 
   <div class="column " *ngFor="let x of curAca; let i = index">
-    
     <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(i)'>{{x}}</button>
-
-  </div>
-    
-</div>
-
-
-
-<div *ngIf="showAnswerGroup2Html" class="columns">  aaanswerGroup2
-  <div class="column ">    
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(1)'>1</button>
-  </div>
-  <div class="column ">    
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(2)'>2</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(3)'>3</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(4)'>4</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(5)'>5</button>
   </div>
 </div>
 
-<div *ngIf="showAnswerGroup3Html" class="columns"> aaanswerGroup3  
-  <div class="column ">    
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(1)'>1</button>
-  </div>
-  <div class="column ">    
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(2)'>2</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(3)'>3</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(4)'>4</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(5)'>5</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(6)'>6</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(7)'>7</button>
-  </div>
-  <div class="column ">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(8)'>8</button>
-  </div>
-</div>
+
 
 <div *ngIf="showWrapUpHtml" class=" has-background-primary" >  
   Thank you for taking this questionnaire.
