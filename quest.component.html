@@ -142,19 +142,68 @@ he told us elapsed time
 ================================================
  
   </textarea>
+  <textarea class="textarea" rows="3">
+    accumulators
+    a set of mini scoreboards that could be 'added to' at answer time.
+    a setup person has to decide how many accumulators he wants,
+    and what they will mean for a test taker.
+    examples of accumulators for new questionnaire, and for old questionnaire.
+    new example 1:  accumulator for 'i have a parekeet'
+      add to this accumulator when he answers 'do you have a parakeet?'
+      so after he answers, the accumulator will have 0 (no) or 1 (yes)
+    old example 1: accumulator for vocabulary
+      add to this accumulator when he answers a vocab question.
+      like, a correct answer adds 1 point to the accumulator,
+      but an incorrect answer adds 0 points.
+      at the end of all vocabulary questions, 
+      we now have points for the accumulator.
+    OK, different from Ed's test, we might want to keep track of
+    how many vocab questions we asked.  this can help us perform scoring.
+    like, if he got 4 out 5 correct, we gotta keep track of the 5
+    so that we can provide an 80% score. 
+    this gets tricky, cuz every time he designs a new question,
+    and that question adds something to an accumulator,
+    then we should 'remember' that the accululators question-count
+    needs to be incremented.  Then we can further complicate this,
+    by setting a minScore and a maxScore for each accumulator.
+    the minScore would be a sum of the lowest values in each question
+    the maxScore would be a sum of the highest values in each question.
+    maybe we should start with database setup of fields,
+    then worry about how those fields get updated.
+
+    //  somewhere near answer store, 
+    // ya gotta add to an accum.
+    // either that, or wait til the scoring?
+    // seems like the accumulator adding should be done
+    // when you writeAnswer.
+    // on the other hand, if ya remember the ansPoints
+    // for each answer (maybe into an array)
+    // then the scoring could just add the ansPoints for
+    // for each answer into the right accumulator.
+    // oh, and ya gotta figure out which accumulator(s)
+    // is tied to each answer.
+    // maybe start simple, just setup some temporary accums
+    // in an array.  {accum: 001}   {accum: 002}
+    // for all questions, just add the answer points to accum 1
+    // except, maybe add the parakeet answerPoints to accum 2
+
+
+  </textarea>
+
 
 <br>
-<div class=" has-background-primary " >
+
+<!-- <div class=" has-background-primary " >
   <button class='button is-info'(click)='fetchQtDbTest3()'>fetchQtDbTest3</button>
   <p> qtDbDataQuestTxt: {{ qtDbDataQuestTxt }}</p>
   <p> qtDbRef: {{ qtDbRef }}</p>
 </div>
-<br>
+<br> -->
 
 <div class=" has-background-primary " >
-  <button class='button is-info'(click)='fetchQtDbTest5()'>fetchQtDbTest5</button>
-  <p> bla</p>
-  <p> bla</p>
+  <button class='button is-info'(click)='fetchQtDbTest5()'>
+    fetchQtDbTest5 calls launchQtRead05 calls api.qtReadQuestions
+  </button>
 </div>
 <br>
 

@@ -43,14 +43,23 @@ export class QuestComponent implements OnInit {
   todaysDate = new Date().toJSON().split("T")[0];
   myAnswerObj: object = {}
   subsetArray = []
+  allSubsets = []
   sax = 0 // subset array index
   subset = 'aaa'
+  accumListUnique = []
+
+  todoInfo =
+ {
+    title: 'crapACheeNo',
+    completed: false,
+  }
   constructor() { }
 
   ngOnInit(): void {
     this.setQueryStringParms()
     this.initSubsetArray()
     this.launchQtRead05(Event) //fetch all questions from db
+    this.launchQtRead06(Event) //fetch all subsets from db
   }
   
   setQueryStringParms(){
@@ -76,7 +85,22 @@ export class QuestComponent implements OnInit {
   }
 
 
-  initSubsetArray(){ //billy make this real
+  initSubsetArray(){ 
+    //read qtSubsets db table.  load to subsetArray.
+    // ed used to have a primary subset and a follow on subset,
+    // but we are more complex now.
+
+    // lets say we have fifty different subsets and
+    // each question it tied to one of those fifty subsets
+    // via allquestions[x].subset
+    // 
+    // so how should we represent fifty subsets in qtSubsets?
+    // we will need fifty reads if we separate them,
+    // but maybe only 1 read if we have all subsets in one db array.
+    // that makes it easy for this program,
+    // but harder for test setup.  during test setup,
+    // when he adds a subset to a qid,
+    // test setup would have to append to the qid's single db array.  
     this.subsetArray.push(   { "subset": 'aaa'   } )
     this.subsetArray.push(   { "subset": 'bbb'   } )
     this.subsetArray.push(   { "subset": 'ccc'   } )
@@ -96,7 +120,7 @@ export class QuestComponent implements OnInit {
 
   heAnsweredOneQuestion(hisAnsAcaIxFromHtml) {
     console.log('running heAnsweredOneQuestion')
-    //this.storeAnswer(hisAnsAcaIxFromHtml) billy, turn this back on
+    this.storeAnswer(hisAnsAcaIxFromHtml)  
     if (this.aqx < this.activeQuestions.length - 1) { 
       console.log('ready to ask another question')
       this.aqx = this.aqx + 1
@@ -150,12 +174,15 @@ export class QuestComponent implements OnInit {
     console.log('he answered with aca:',this.curAca[hisAnsAcaIx])
     console.log('hisAnsPoints:',this.hisAnsPoints)
     console.log('hisAns:',this.hisAns)
-      // hisAnsPoints now contains the points to be added for his answer
-    // billy, do the function to insert a rec into qtAnswers
+      // hisAnsPoints now contains the points to be added 
+      // for his answer
+    this.buildAnswerFields()
+    // billy, now do the function to insert a rec into qtAnswers
     // first, look for an existing answer and replace it.
     // if no existing answer, then insert one.
-    this.buildAnswerFields()
-    this.writeAnswerToDb(Event)
+
+    // this.writeAnswerToDb(Event) billy turn this back on
+    // might also want to add to accums?  now or later?
   } //end storeAnswer
 
   buildAnswerFields(){
@@ -201,11 +228,11 @@ export class QuestComponent implements OnInit {
   } //end determineNextSet
  
   loadOneRoundToActiveQuestions(subsetParmIn){
-    console.log('filtering questions for subset:', subsetParmIn)
+    //console.log('filtering questions for subset:', subsetParmIn)
     this.activeQuestions = this.allQuestions.filter(function(qRow){
       return qRow.subset == subsetParmIn //'aaa'  fix this   
     })
-    console.table(this.activeQuestions)
+    //console.table(this.activeQuestions)
   } //end loadOneRoundOfQuestionsToActiveQuestions
    
   loadNextSet(){
@@ -225,16 +252,16 @@ export class QuestComponent implements OnInit {
 
 ////////////////////////////////////////////
 
-    fetchQtDbTest3(){ // re-arrange qtDb stuff
-      this.launchQtRead03q(Event)
-    } //end fetchQtDbTest3
+    // fetchQtDbTest3(){ //test db qt read by db ref
+    //   this.launchQtRead03q(Event)
+    // } //end fetchQtDbTest3
 
 
     fetchQtDb4(){ // re-arrange qtDb stuff
       this.launchQtRead03q(Event)
     } 
 
-    fetchQtDbTest5(){   //html button can be killed
+    fetchQtDbTest5(){   //html button can be killed someday
       this.launchQtRead05(Event)
       // alert('i am done with launchQtRead05')
 
@@ -273,7 +300,7 @@ export class QuestComponent implements OnInit {
             this.qtDbRef = qtDbRtnObj.ref["@ref"].id 
             console.log('qtDbData: ' + JSON.stringify(this.qtDbDataObj)) 
             console.log('qtDbDataAca: ' + JSON.stringify(this.qtDbDataAca)) 
-            this.appendOneqtDbQuestionToActiveQuestions()
+            //this.appendOneqtDbQuestionToActiveQuestions()
             console.log('curAca: ' + JSON.stringify(this.curAca)) 
             // return from this on-the-fly functon is implied  
           }
@@ -302,63 +329,15 @@ export class QuestComponent implements OnInit {
             this.curPreQuest = this.activeQuestions[0].preQuest
             this.curQuestTxt = this.activeQuestions[0].questTxt
             this.curAca = this.activeQuestions[0].aca
+            this.buildListOfAccumsFromAllQuestions()
           }
         )
-        .catch((e) => {
-          console.log('qtReadQuestions error37. qtDbRefParm: ' + 'qtDbRefParm?' + e)
+        .catch((e) => {  // api.qtReadQuestions returned an error 
+          console.log('api.qtReadQuestions error.' + e)
         })
   }
 
 
-  initFirstSetOfQuestions(){  //test only, billy kill this
-    this.activeQuestions = [
-      {
-        "qid": "1",
-        "questNbr": "0",
-        "questTxt": "Welcome to the most advanced soul evaluation that mankind has ever known.  This questionnaire will test your sanity, your vocabulary, and your patience.",
-        "aca": ['... continue ...'],
-        "acaPointVals": [0],
-        "preQuest": "this is like an intro.",
-        "seq": "1001",
-        "subset": "aaa",
-        "qRef": '276403382834430483'
-      },
-      {
-        "qid": "1",
-        "questNbr": "1",
-        "questTxt": "Do you want a sandwich?",
-        "aca": ['yes','no'],
-        "acaPointVals": [1,0],
-        "preQuest": "First, let's see how hungry you are.",
-        "seq": "1002",
-        "subset": "aaa",
-        "qRef": '276403382834430483'
-      },
-      {
-        "qid": "1",
-        "questNbr": "2",
-        "questTxt": "DEPLORE is most OPPOSITE to ... ",
-        "aca": ['indulge','approve','separate','entertain','weaken'] ,
-        "acaPointVals": [0,1,0,0,0],
-        "preQuest": " your vocabulary skills, last quest of set1",
-        "seq": "1009",        
-        "subset": "aaa",
-        "qRef": '276403382834430483'
-      },
-      {
-        "qid": "1",
-        "questNbr": "3",
-        "questTxt": "Explore is most OPPOSITE to ... ",
-        "aca": ['indulge','approve','separate','entertain','weaken'] ,
-        "acaPointVals": [0,1,0,0,0],
-        "preQuest": " your vocabulary skills ",
-        "seq": "1008",
-        "subset": "aaa",
-        "qRef": '276403382834430483'
-      }
-    ] //end of initial set of activeQuestions
-    this.activeQuestions.sort((a, b) => (a.seq > b.seq) ? 1 : -1)
-  }
 
   loadQuestionsFromDbToAllQuestions(qtDbObj){
     console.log('running loadQuestionsFromDbToAllQuestions')
@@ -368,72 +347,58 @@ export class QuestComponent implements OnInit {
     //console.log('qtDbObj.data is::::::')
     //console.table(qtDbObj[0].data)
     this.allQuestions.length = 0 //start out with an empty array.
-
     for (let i = 0; i < qtDbObj.length; i++) {
       this.allQuestions.push(qtDbObj[i].data)
     }
-    console.log('done with loadQuestionsFromDbToAllQuestions')
+    //console.log('done with loadQuestionsFromDbToAllQuestions')
   }
 
-  loadTest2ndSetofQuestions(){ //not used
-    console.log('running loadTest2ndSetofQuestions')
-    this.activeQuestions = [
-      {
-        "qid": "1",
-        "questNbr": "3",
-        "questTxt": "Have you ever been to Heaven?",
-        "aca": ['no','yes','maybe, like in a dream'],
-        "acaPointVals": [0,1,2],
-        "preQuest": "Here's a question from set2:",
-        "seq": "2002",
-        "subset": "bbb",
-        "qRef": '276403382834430483'
-      },
-      {
-        "qid": "1",
-        "questNbr": "4",
-        "questTxt": "On a scale of 1 to 8, how much do you like ice cream?",
-        "aca": [1,2,3,4,5,6,7,8],
-        "acaPointVals": [1,2,3,4,5,6,7,8],
-        "preQuest": "here's a question from set2 with seq 2004",
-        "seq": "2004",
-        "subset": "bbb",
-        "qRef": '276403382834430483'
-      },
-      {
-        "qid": "1",
-        "questNbr": "5",
-        "questTxt": "On a scale of 9 to 6, how cool are you?",
-        "aca": [9,8,7,6],
-        "acaPointVals": [9,8,7,6],
-        "preQuest": "here's a question from set2 with seq 2600",
-        "seq": "2600",
-        "subset": "bbb",
-        "qRef": '276403382834430483'
+  buildListOfAccumsFromAllQuestions(){
+    console.log('running buildListOfAccumsFromAllQuestions')
+    // read all questions array, find the unique accumulators.
+    // push a newly discovered accum into accumListUnique.
+    for (let i = 0; i < this.allQuestions.length; i++) {
+      // this question has an array of accumulators.
+      for (let j = 0; j < this.allQuestions[i].accum.length; j++) {
+        // find this accum in accumListUnique. if not found, add it.
+        let fff = this.accumListUnique.indexOf(
+                      this.allQuestions[i].accum[j]
+                    )
+        if (fff < 0){
+            this.accumListUnique.push(this.allQuestions[i].accum[j] )
+        }
       }
-    ] //end of initial set of activeQuestions
-    this.activeQuestions.sort((a, b) => (a.seq > b.seq) ? 1 : -1)
-
+    }
   }
 
-
-  appendOneqtDbQuestionToActiveQuestions(){ //not used, kill this
-    console.log('running appendOneqtDbQuestionToActiveQuestions')
-    this.activeQuestions.push(
-      {
-        "qid": this.qid,
-        "questNbr": this.qtDbDataQuestNbr,
-        "questTxt": this.qtDbDataQuestTxt,
-        "aca": this.qtDbDataAca,
-        "acaPointVals": this.qtDbDataAcaPointVals,
-        "preQuest": this.qtDbDataPreQuest,
-        "seq": this.qtDbDataSeq,
-        "subset": this.qtDbDataSubset,
-        "qRef": this.qtDbRef
-        
-      }
-    )
+  launchQtRead06 = (e) => {
+    console.log('running launchQtRead6')
+    const todoInfo = {
+      title: 'crapAdellic',
+      completed: false,
+    }
+    api.qtReadSubsets(this.qid)
+        .then 
+        (   (qtDbRtnObj) => 
+          {
+            console.log(' running .then of api.qtReadSubsets') 
+            this.buildListOfSubsets(qtDbRtnObj)
+          }
+        )
+        .catch((e) => {  // api.qtReadSubsets returned an error 
+          console.log('api.qtReadSubsets error.' + e)
+        })
   }
+
+  buildListOfSubsets(qtDbObj){
+    console.log('running buildListOfSubsets')
+    this.allSubsets.length = 0 //start out with an empty array.
+    for (let i = 0; i < qtDbObj.length; i++) {
+      this.allSubsets.push(qtDbObj[i].data)
+    }
+    console.table(this.allSubsets)
+  }
+
   setDiagnosticsOnOff(){
     //console.log('running setDiagnosticsOnOff')
     if (this.showDiagHtml === true) {

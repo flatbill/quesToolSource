@@ -84,6 +84,15 @@ const qtReadQuestions = () => {
   })
 }
 
+const qtReadSubsets = (qidParmIn) => {
+  let myUrl = 
+  'https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtReadSubsets?qid=' + qidParmIn
+   return fetch(myUrl)
+  //return fetch('https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtReadSubsets?qid=2')
+  .then((response) => {
+    return response.json()
+  })
+}
 
 // const qtRead03l = (faunaRecId, data) => {
 //   return fetch(`https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtRead03/${faunaRecId}`, {
@@ -104,7 +113,8 @@ export default  {
   qtRead02: qtRead02,
   qtRead03: qtRead03,
   qtWriteAnswer: qtWriteAnswer,
-  qtReadQuestions: qtReadQuestions
+  qtReadQuestions: qtReadQuestions,
+  qtReadSubsets: qtReadSubsets
 
 }
 
