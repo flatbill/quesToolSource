@@ -77,8 +77,10 @@ const qtWriteAnswer = (data) => {
   })
 }
 
-const qtReadQuestions = () => {
-  return fetch('https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtReadQuestions')
+const qtReadQuestions = (qidParmIn) => {
+  let myUrl =  'https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtReadQuestions?qid=' + qidParmIn
+  return fetch(myUrl)
+  //return fetch('https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtReadQuestions')
   .then((response) => {
     return response.json()
   })
@@ -88,20 +90,11 @@ const qtReadSubsets = (qidParmIn) => {
   let myUrl = 
   'https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtReadSubsets?qid=' + qidParmIn
    return fetch(myUrl)
-  //return fetch('https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtReadSubsets?qid=2')
   .then((response) => {
     return response.json()
   })
 }
 
-// const qtRead03l = (faunaRecId, data) => {
-//   return fetch(`https://stupefied-elion-621b07.netlify.app/.netlify/functions/qtRead03/${faunaRecId}`, {
-//     body: JSON.stringify(data),
-//     //method: 'POST'
-//   }).then(response => {
-//     return response.json()
-//   })
-// }
 
 export default  {
   create: create,
