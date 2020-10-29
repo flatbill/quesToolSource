@@ -9,7 +9,6 @@ import { makeBindingParser, ThrowStmt } from '@angular/compiler';
   styleUrls: ['./quest.component.css']
 })
 export class QuestComponent implements OnInit {
- 
   cust = '?'
   qid = '?'
   qUserId = 'BillSelzer'
@@ -23,6 +22,7 @@ export class QuestComponent implements OnInit {
   curQuestTxt = 'no QuestTxt yet'
   curPreQuest = 'no PreQuest yet'
   curAca = []   //aca is Answer Choice Array.  One aca per question.
+  curFirstAccum = '?'
   qtDbDataObj: object = {}
   qtDbDataQuestNbr = '?'
   qtDbDataQuestTxt = '?'
@@ -32,32 +32,34 @@ export class QuestComponent implements OnInit {
   qtDbDataAca = [] 
   qtDbDataSeq = '?' 
   qtDbDataAcaPointVals = [] 
+  qtDbDataAccum = []
   allQuestions = []
   activeQuestions = []
   countMySetsTempTest = 1
-  timeGap = 222
   showQuestHtml = true
   showAnswerGroupHtml = true 
   showWrapUpHtml = false
   showDiagHtml = false
   todaysDate = new Date().toJSON().split("T")[0];
   myAnswerObj: object = {}
-  subsetArray = []
-  allSubsets = []
+  accumObj: object = {}
+  subsetArray = []  
+  subsetsFromDb = []   
   sax = 0 // subset array index
   subset = 'aaa'
   accumListUnique = []
-
-  todoInfo =
- {
-    title: 'crapACheeNo',
-    completed: false,
-  }
+  timeGap = 0
+  answerStartTime = performance.now()
+  answerEndTime = performance.now()
+  answerArray = []
+  scoreRound = 1
+  //billy, maybe create question rec layout, like dateCodeCatalog.
+  // right now, questions just follow the db rec layout.
+  // is that good enuff, or will it be confusing later?
   constructor() { }
 
   ngOnInit(): void {
     this.setQueryStringParms()
-    this.initSubsetArray()
     this.launchQtRead05(Event) //fetch all questions from db
     this.launchQtRead06(Event) //fetch all subsets from db
   }
@@ -67,99 +69,80 @@ export class QuestComponent implements OnInit {
     let locSearchResultCust  = locSearchResult.get('cust')
     let locSearchResultQid   = locSearchResult.get('qid')
     let locSearchResultIcode = locSearchResult.get('icode')
-     // cust:
      if (locSearchResultCust != null) {
       this.cust = locSearchResultCust
     }
-    // qid:
     if (locSearchResultQid != null) {
       this.qid = locSearchResultQid
     }
-    // iCode:
     if (locSearchResultIcode != null) {
       this.iCode = locSearchResultIcode
     }
     console.log('this.cust is: ',this.cust)
     console.log('this.qid is: ',this.qid)
     console.log('this.iCode is: ',this.iCode)
+    // when no querystring, set defaults to 1
+    // not a great idea when we get more.
+    if(this.cust = '?'){this.cust = '1'}
+    if(this.qid = '?'){this.qid = '1'}
   }
 
 
-  initSubsetArray(){ 
-    //read qtSubsets db table.  load to subsetArray.
-    // ed used to have a primary subset and a follow on subset,
-    // but we are more complex now.
 
-    // lets say we have fifty different subsets and
-    // each question it tied to one of those fifty subsets
-    // via allquestions[x].subset
-    // 
-    // so how should we represent fifty subsets in qtSubsets?
-    // we will need fifty reads if we separate them,
-    // but maybe only 1 read if we have all subsets in one db array.
-    // that makes it easy for this program,
-    // but harder for test setup.  during test setup,
-    // when he adds a subset to a qid,
-    // test setup would have to append to the qid's single db array.  
-    this.subsetArray.push(   { "subset": 'aaa'   } )
-    this.subsetArray.push(   { "subset": 'bbb'   } )
-    this.subsetArray.push(   { "subset": 'ccc'   } )
-    console.table(this.subsetArray)
-  } // end initSubsetArray
-
-
-  loadFirstQuestionOfSetToCur(){
-    // console.log('running loadFirstQuestionOfSetToCur')
-    // console.table(this.activeQuestions)
-    // if (this.aqx <= this.activeQuestions.length) { 
-    //   this.curQuestTxt = this.activeQuestions[this.aqx].questTxt  
-    //   this.curPreQuest =  this.activeQuestions[this.aqx].preQuest 
-    //   this.curAca = this.activeQuestions[this.aqx].aca
-    // }
-  } // end loadFirstQuestionOfSetToCur
 
   heAnsweredOneQuestion(hisAnsAcaIxFromHtml) {
-    console.log('running heAnsweredOneQuestion')
+    //console.log('running heAnsweredOneQuestion')
+    this.calcAnswerTimeGap()
     this.storeAnswer(hisAnsAcaIxFromHtml)  
     if (this.aqx < this.activeQuestions.length - 1) { 
-      console.log('ready to ask another question')
+      //console.log('ready to ask another question')
       this.aqx = this.aqx + 1
       this.curQuestTxt = this.activeQuestions[this.aqx].questTxt
       this.curPreQuest = this.activeQuestions[this.aqx].preQuest 
       this.curAca = this.activeQuestions[this.aqx].aca 
+      this.curFirstAccum = this.activeQuestions[this.aqx].accum[0] 
     } else {
-      console.log('active set is done')
+      console.log('done with active subset.')
+      this.performScoring()
       this.curQuestTxt = ''
       this.curPreQuest = ''
       this.curAca = []
-       
+      this.curFirstAccum = ' '
+      // sax means which subset we are on.
       this.sax = this.sax + 1 
       if (this.sax < this.subsetArray.length) { 
         this.subset = this.subsetArray[this.sax].subset
+        //console.log('moving on to this.subset:',this.subset )
         this.loadOneRoundToActiveQuestions(this.subset)
       } else {
         this.activeQuestions.length = 0
       }
       
-      // if (this.subset == 'ccc'){this.subset = '---'}
-      // if (this.subset == 'bbb'){this.subset = 'ccc'}
-      // if (this.subset == 'aaa'){this.subset = 'bbb'}
-      if (this.activeQuestions.length>0){  //we have more questions
+      if (this.activeQuestions.length > 0) {  //we have more questions
         this.aqx = 0
         this.curPreQuest = this.activeQuestions[0].preQuest
         this.curQuestTxt = this.activeQuestions[0].questTxt
         this.curAca = this.activeQuestions[0].aca
+        this.curFirstAccum = this.activeQuestions[0].accum[0]
       } else {
         this.wrapUp() //we are done with qNa.
       }
-      //this.performScoring()
     }
   } // end heAnsweredOneQuestion
 
+  calcAnswerTimeGap(){
+    this.answerEndTime = performance.now()
+    let tdif = 
+      ( this.answerEndTime - 
+        this.answerStartTime ) / 1000
+    this.timeGap = Math.round(tdif);
+    this.answerStartTime = performance.now()
+  }  // end calcAnswerTimeGap
+
   storeAnswer(hisAnsAcaIx){
     console.log('running storeAnswer')
-    console.log('ready to store answer for:',this.curQuestTxt)
-    console.log('hisAnsAcaIx',hisAnsAcaIx)
+    //console.log('ready to store answer for:',this.curQuestTxt)
+    //console.log('hisAnsAcaIx',hisAnsAcaIx)
     // for the recently answered question (the active question),
     // set a point value into hisAnsPoints.
     // he gave an answer, and we captured it into hisAnsAcaIx.
@@ -170,23 +153,21 @@ export class QuestComponent implements OnInit {
       this.activeQuestions[this.aqx].acaPointVals[hisAnsAcaIx]
     this.hisAns =
       this.activeQuestions[this.aqx].aca[hisAnsAcaIx]
-    console.log('aqx:',this.aqx)
-    console.log('he answered with aca:',this.curAca[hisAnsAcaIx])
     console.log('hisAnsPoints:',this.hisAnsPoints)
     console.log('hisAns:',this.hisAns)
       // hisAnsPoints now contains the points to be added 
       // for his answer
     this.buildAnswerFields()
-    // billy, now do the function to insert a rec into qtAnswers
-    // first, look for an existing answer and replace it.
+    this.pushAnswerToAnswerArray()
+    // billy turn this back on:
+    // this.writeAnswerToDb(Event) 
+    // first, look for an existing answer in the db and replace it.
     // if no existing answer, then insert one.
 
-    // this.writeAnswerToDb(Event) billy turn this back on
-    // might also want to add to accums?  now or later?
   } //end storeAnswer
 
   buildAnswerFields(){
-    this.myAnswerObj =
+    this.myAnswerObj = 
     {
       "qid": this.activeQuestions[this.aqx].qid,
       "questNbr": this.activeQuestions[this.aqx].questNbr,
@@ -194,68 +175,93 @@ export class QuestComponent implements OnInit {
       "qUserId": this.qUserId,
       "answer": this.hisAns,
       "answerPoints": this.hisAnsPoints,
-      "timeGap": this.timeGap
+      "timeGap": this.timeGap,
+      "accum" : this.activeQuestions[this.aqx].accum,  
+      "scoreRound" : 0
     }
-    console.log('my answer object', this.myAnswerObj)
+        // when building an answer rec, we copy-in the accum array 
+        // from the question to help later with scoring.
+        // we use scoreRound later, set to 1 2 3 etc,
+        // to keep track of whether the answers have been scored yet.
+        // console.log('my answer object', this.myAnswerObj)
+  } // end buildAnswerFields
+
+  pushAnswerToAnswerArray(){
+    // every time he gives an answer, push to answerArray.
+    this.answerArray.push(this.myAnswerObj)
   }
+
   writeAnswerToDb(ev){
     console.log('running writeAnswerToDb')
     api.qtWriteAnswer(this.myAnswerObj)
         .then 
         (   (qtDbRtnObj) => 
           {
-            console.log(' try writeAnswerToDb with:' + this.myAnswerObj) 
-            console.table(qtDbRtnObj) 
+            //console.log(' try writeAnswerToDb with:' + this.myAnswerObj) 
+            //console.table(qtDbRtnObj) 
             this.qtDbDataObj = qtDbRtnObj.data
             // this.qtDbDataQuestTxt = qtDbRtnObj.data.questTxt
             // this.qtDbRef = qtDbRtnObj.ref["@ref"].id 
-            console.log('qtDbData: ' + JSON.stringify(this.qtDbDataObj)) 
+            //console.log('qtDbData: ' + JSON.stringify(this.qtDbDataObj)) 
             // return from this on-the-fly functon is implied  
           }
         )
       .catch((e) => {
-        console.log('qtWriteAnswer error. ' +  ev)
+        console.log('qtWriteAnswer error. ' +  e)
       })
   }
 
   performScoring(){
     console.log('running performScoring')
-
+      // for each answer he gave in this round,
+      // add ansPoints to 1 or more accumulators,
+      // depending on which accumulators were tied to the question.
+      // filter by answerArray.scoreRound = 0 (not yet scored)
+      // and loop thru the filtered answer array.
+      // then after scoring in this paragrf,
+      // keep track of scoring rounds each time you run this,
+      // and set answerArray.scoreRound = to this round
+      // billy ya gotta store the scores for the accums.
+      // do this periodically, maybe after each scoring round?
+      for (let i = 0; i < this.answerArray.length; i++) {
+        for (let j = 0; j < this.answerArray[i].accum.length; j++) {
+          if (this.answerArray[i].scoreRound == 0) {
+            this.findAccumAndAddPoints(this.answerArray[i].accum[j],
+                                      this.answerArray[i].answerPoints)
+            this.answerArray[i].scoreRound  = this.scoreRound
+                                    }
+        }
+      } // end answerArray Loop
+      this.scoreRound = this.scoreRound + 1 
   } // end performScoring
 
-  determineNextSubsets(){
-  //   console.log('running determineNextSubsets')
-  } //end determineNextSet
+  findAccumAndAddPoints(accumParmIn,ansPointsParmIn){
+    //console.log('running findAccumAndAddPoints')
+    let pos = this.accumListUnique
+      .map(function(a) { return a.accum }).indexOf(accumParmIn);
+    this.accumListUnique[pos].accumScore =
+      this.accumListUnique[pos].accumScore + ansPointsParmIn
+    this.accumListUnique[pos].accumQuestCnt =  
+      this.accumListUnique[pos].accumQuestCnt + 1
+  } // end findAccumAndAddPoints
  
   loadOneRoundToActiveQuestions(subsetParmIn){
-    //console.log('filtering questions for subset:', subsetParmIn)
     this.activeQuestions = this.allQuestions.filter(function(qRow){
-      return qRow.subset == subsetParmIn //'aaa'  fix this   
+      return qRow.subset == subsetParmIn     
     })
-    //console.table(this.activeQuestions)
   } //end loadOneRoundOfQuestionsToActiveQuestions
-   
-  loadNextSet(){
-    console.log('running loadNextSet')
-    //this.loadTest2ndSetofQuestions()
-    this.aqx = 0
-  } //end loadNextSet
 
   wrapUp(){
     console.log('running wrapUp')
     this.showQuestHtml = false
-    // this.showAnswerGroup1Html = false
-    // this.showAnswerGroup2Html = false
-    // this.showAnswerGroup3Html = false
     this.showWrapUpHtml = true
+    console.log('final answers:')
+    console.table(this.answerArray)
+    console.log('final accums:')
+    console.table(this.accumListUnique)
   } // end wrapUp
 
 ////////////////////////////////////////////
-
-    // fetchQtDbTest3(){ //test db qt read by db ref
-    //   this.launchQtRead03q(Event)
-    // } //end fetchQtDbTest3
-
 
     fetchQtDb4(){ // re-arrange qtDb stuff
       this.launchQtRead03q(Event)
@@ -263,8 +269,6 @@ export class QuestComponent implements OnInit {
 
     fetchQtDbTest5(){   //html button can be killed someday
       this.launchQtRead05(Event)
-      // alert('i am done with launchQtRead05')
-
     }  
 
     launchQtRead03q = (e) => { //do not use
@@ -281,14 +285,13 @@ export class QuestComponent implements OnInit {
       // let qtDbRefParm = '276380634185728512'
       // let qtDbRefParm = '276403382834430483'
       let qtDbRefParm = '279739273992733188'
-      
 
       api.qtRead03(qtDbRefParm)
         .then 
         (   (qtDbRtnObj) => 
           {
-            console.log(' try qtRead03 read = with:' + qtDbRefParm) 
-            console.table(qtDbRtnObj) 
+            //console.log(' try qtRead03 read = with:' + qtDbRefParm) 
+            //console.table(qtDbRtnObj) 
             this.qtDbDataObj = qtDbRtnObj.data
             this.qtDbDataQuestTxt = qtDbRtnObj.data.questTxt
             this.qtDbDataQuestNbr = qtDbRtnObj.data.questNbr
@@ -297,18 +300,18 @@ export class QuestComponent implements OnInit {
             this.qtDbDataAcaPointVals = qtDbRtnObj.data.acaPointVals
             this.qtDbDataAca = qtDbRtnObj.data.aca
             this.qtDbDataSeq = qtDbRtnObj.data.seq
+            this.qtDbDataAccum = qtDbRtnObj.data.accum
             this.qtDbRef = qtDbRtnObj.ref["@ref"].id 
-            console.log('qtDbData: ' + JSON.stringify(this.qtDbDataObj)) 
-            console.log('qtDbDataAca: ' + JSON.stringify(this.qtDbDataAca)) 
+            //console.log('qtDbData: ' + JSON.stringify(this.qtDbDataObj)) 
+            //console.log('qtDbDataAca: ' + JSON.stringify(this.qtDbDataAca)) 
             //this.appendOneqtDbQuestionToActiveQuestions()
-            console.log('curAca: ' + JSON.stringify(this.curAca)) 
+            //console.log('curAca: ' + JSON.stringify(this.curAca)) 
             // return from this on-the-fly functon is implied  
           }
         )
       .catch((e) => {
         console.log('qtRead03 error. qtDbRefParm: ' + qtDbRefParm + e)
       })
-      // alert('done running launchQtRead03q')
     } 
 
 
@@ -319,7 +322,7 @@ export class QuestComponent implements OnInit {
     ////////////////////////////////////////////////////////////////
 
   launchQtRead05 = (e) => {
-    api.qtReadQuestions('iWonderWhatGoesHereMaybePaginationParms')
+    api.qtReadQuestions(this.qid)
         .then 
         (   (qtDbRtnObj) => 
           {
@@ -329,6 +332,7 @@ export class QuestComponent implements OnInit {
             this.curPreQuest = this.activeQuestions[0].preQuest
             this.curQuestTxt = this.activeQuestions[0].questTxt
             this.curAca = this.activeQuestions[0].aca
+            this.curFirstAccum = this.activeQuestions[0].accum[0]
             this.buildListOfAccumsFromAllQuestions()
           }
         )
@@ -338,19 +342,19 @@ export class QuestComponent implements OnInit {
   }
 
 
-
   loadQuestionsFromDbToAllQuestions(qtDbObj){
     console.log('running loadQuestionsFromDbToAllQuestions')
     // input qtDbObj from database > output allQuestions array.
     // get here after .then of reading db,
     // so qtDbObj is ready to use.
-    //console.log('qtDbObj.data is::::::')
-    //console.table(qtDbObj[0].data)
-    this.allQuestions.length = 0 //start out with an empty array.
+    this.allQuestions.length = 0 //blank out array, then load it
     for (let i = 0; i < qtDbObj.length; i++) {
       this.allQuestions.push(qtDbObj[i].data)
     }
-    //console.log('done with loadQuestionsFromDbToAllQuestions')
+    //
+    console.log('allQuestions:')
+    console.table(this.allQuestions)
+    console.log('done with loadQuestionsFromDbToAllQuestions')
   }
 
   buildListOfAccumsFromAllQuestions(){
@@ -360,23 +364,26 @@ export class QuestComponent implements OnInit {
     for (let i = 0; i < this.allQuestions.length; i++) {
       // this question has an array of accumulators.
       for (let j = 0; j < this.allQuestions[i].accum.length; j++) {
-        // find this accum in accumListUnique. if not found, add it.
-        let fff = this.accumListUnique.indexOf(
-                      this.allQuestions[i].accum[j]
-                    )
-        if (fff < 0){
-            this.accumListUnique.push(this.allQuestions[i].accum[j] )
+        // find the accum in accumListUnique. if not found, add it.
+        let position = 
+          this.accumListUnique.map(function(a) { return a.accum })
+          .indexOf(this.allQuestions[i].accum[j]);
+        if (position < 0){
+            this.accumObj = { 
+              'accum': this.allQuestions[i].accum[j],
+              'accumScore' : 0,
+              'accumQuestCnt' : 0
+            }
+          this.accumListUnique.push(this.accumObj)
         }
       }
     }
+    console.log('accumListUnique:')
+    console.table(this.accumListUnique)
   }
 
   launchQtRead06 = (e) => {
     console.log('running launchQtRead6')
-    const todoInfo = {
-      title: 'crapAdellic',
-      completed: false,
-    }
     api.qtReadSubsets(this.qid)
         .then 
         (   (qtDbRtnObj) => 
@@ -392,12 +399,22 @@ export class QuestComponent implements OnInit {
 
   buildListOfSubsets(qtDbObj){
     console.log('running buildListOfSubsets')
-    this.allSubsets.length = 0 //start out with an empty array.
+    this.subsetsFromDb.length = 0 //start out with an empty array.
     for (let i = 0; i < qtDbObj.length; i++) {
-      this.allSubsets.push(qtDbObj[i].data)
+      // we are reading as if there are multiple recs from db,
+      // but we expect to fetch just one (for this qid)
+      this.subsetsFromDb.push(qtDbObj[i].data)
     }
-    console.table(this.allSubsets)
-  }
+    let ssObj = {}
+    for (let j = 0; j < this.subsetsFromDb[0].subsets.length; j++) {
+      ssObj = {'subset' : this.subsetsFromDb[0].subsets[j]}
+      this.subsetArray.push( ssObj )
+    }
+  }  // end of buildListOfSubsets
+  /////////////////////////////////////////////////////////////////
+    // a neato keen way to filter only for pigFly = 'yes':
+    // this.array2 = 
+    //   this.array1.filter(x => x.pigFly == 'yes')
 
   setDiagnosticsOnOff(){
     //console.log('running setDiagnosticsOnOff')
