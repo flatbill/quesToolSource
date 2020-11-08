@@ -11,12 +11,12 @@ exports.handler = async (event, context) => {
   })  
   /* parse the string body into a useable JS object */
   const data = JSON.parse(event.body)
-  console.log('Function qtWriteAnswer invoked', data)
-  const answerAdelic = {
+  console.log('Function qtWriteScore invoked', data)
+  const scoreAdelic = {
     data: data
   }
   /* construct the fauna query */
-  return client.query(q.Create(q.Ref('classes/qtAnswers'), answerAdelic))
+  return client.query(q.Create(q.Ref('classes/qtScores'), scoreAdelic))
     .then((response) => {
       console.log('success', response)
       /* Success! return the response with statusCode 200 */

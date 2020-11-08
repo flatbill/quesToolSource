@@ -19,14 +19,14 @@ exports.handler = (event, context) => {
   //return client.query(q.Paginate(q.Match(q.Ref('indexes/qtQuestionsX1'))))
   return client.query(q.Paginate(q.Match(q.Index('qtQuestionsX1'),myQid)))
     .then((response) => {
-    const todoRefs = response.data
-    console.log('Todo refs', todoRefs)
-    console.log(`${todoRefs.length} todos found`)
-    const getAllTodoDataQuery = todoRefs.map((ref) => {
+    const qtQuestionsRefs = response.data
+    console.log('qtQuestions refs', qtQuestionsRefs)
+    console.log(`${qtQuestionsRefs.length} qtQuestions found`)
+    const getAllqtQuestionsDataQuery = qtQuestionsRefs.map((ref) => {
       return q.Get(ref)
     })
     // then query the refs
-    return client.query(getAllTodoDataQuery).then((ret) => {
+    return client.query(getAllqtQuestionsDataQuery).then((ret) => {
       return {
         statusCode: 200,
         headers: {'Access-Control-Allow-Origin': '*'},

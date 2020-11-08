@@ -21,24 +21,24 @@ exports.handler = async (event, context) => {
 //const datafromEventBody = JSON.parse(event.body)
 //console.log('Function qtReadSubsets invoked. event body: ')
 //console.table(event.body) 
-// const todoItem = {
+// const qtSubsetsItem = {
 //   datafromEventBody: data
 // }
-//return client.query(q.Create(q.Ref('classes/todos'), todoItem))
+//return client.query(q.Create(q.Ref('classes/qtSubsets'), qtSubsetsItem))
 
   let myFaunaFetchQuests = 'classes/' + myFaunaCollection + '/'
   // return client.query(q.Paginate(q.Match(q.Ref('indexes/qtSubsetsX1'))))
   return client.query(q.Paginate(q.Match(q.Index('qtSubsetsX1'), myQid )))
   //q.Match(q.Index('spells_by_element'), 'fire')
     .then((response) => {
-    const todoRefs = response.data
-    console.log('Todo refs', todoRefs)
-    console.log(`${todoRefs.length} todos found`)
-    const getAllTodoDataQuery = todoRefs.map((ref) => {
+    const qtSubsetsRefs = response.data
+    console.log('qtSubsets refs', qtSubsetsRefs)
+    console.log(`${qtSubsetsRefs.length} qtSubsets found`)
+    const getAllqtSubsetsDataQuery = qtSubsetsRefs.map((ref) => {
       return q.Get(ref)
     })
     // then query the refs
-    return client.query(getAllTodoDataQuery).then((ret) => {
+    return client.query(getAllqtSubsetsDataQuery).then((ret) => {
       return {
         statusCode: 200,
         headers: {'Access-Control-Allow-Origin': '*'},
