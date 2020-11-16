@@ -1,13 +1,55 @@
-<button class='button is-info'(click)='setDiagnosticsOnOff()'>
+
+<button class='button is-link'(click)='setDiagnosticsOnOff()'>
   set diagnostics on/off
 </button>
 
-<section *ngIf="showDiagHtml" class="bla" >
+<section *ngIf="showDiagHtml"  >
   <div>
     previous answer points: {{hisAnsPoints}} <br>
     answers stored to db so far:  {{answerCnt}} <br>
     scoring rounds completed so far: {{scoreRound-1}} <br>
     scores stored to db so far:  {{scoreRecsWritten}} <br>
+  </div>
+  <div>
+    <button class='button is-link'(click)='massDeleteAnswers()'>
+      mass delete answers
+    </button>
+    <br>
+    <br>
+    <button class='button is-link'(click)='massDeleteScores()'>
+      mass delete scores
+    </button>  
+    <br>
+    <br>
+
+  </div>
+  <div class="columns">
+    <div class="column ">
+      <div class="has-background-info">q nbr</div>
+      <ul >
+        <li *ngFor="let q of activeQuestions">{{q.questNbr}}</li>
+      </ul>
+    </div>
+    <div class="column">
+      <div class='has-background-info'>q txt</div>
+      <ul>
+        <li *ngFor="let q of activeQuestions">{{q.questTxt}}</li>
+      </ul>
+      
+    </div>
+    <div class="column">
+      <div class='has-background-info'>q susbset</div>
+      <ul >
+        <li *ngFor="let q of activeQuestions">{{q.subset}}</li>
+      </ul>
+    </div>
+    <div class="column">
+      <div class='has-background-info'>q accum</div>
+      <ul >
+        <li *ngFor="let q of activeQuestions">{{q.accum[0]}}</li>
+      </ul>
+
+    </div>
   </div>
 </section>
 
@@ -22,7 +64,7 @@
 
 <div *ngIf="showAnswerGroupHtml" class="columns box "> 
   <div class="column " *ngFor="let x of curAca; let i = index">
-    <button class='button is-info is-fullwidth'(click)='heAnsweredOneQuestion(i)'>{{x}}</button>
+    <button class='button is-link is-fullwidth'(click)='heAnsweredOneQuestion(i)'>{{x}}</button>
   </div>
 </div>
 

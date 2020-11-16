@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core'
 import api from 'src/utils/api'
-import { makeBindingParser, ThrowStmt } from '@angular/compiler';
+import { makeBindingParser, ThrowStmt } from '@angular/compiler'
 @Component({
   selector: 'app-quest',
   templateUrl: './quest.component.html',
@@ -9,32 +9,32 @@ import { makeBindingParser, ThrowStmt } from '@angular/compiler';
 export class QuestComponent implements OnInit {
   cust = '?'
   qid = '?'
-  qUserId = 'FredSelzer'
-  iCode = '?'
+  icode = '?'
+  qUserId = 'DanSelzer'
   hisAns = '0'
-  hisAnsAcaIndex = 0
+  //hisAnsAcaIndex = 0
   hisAnsPoints = 0
   aqx = 0 // active question index
   curQuestTxt = '... loading questions ...'
   curPreQuest = ''
   curAca = []   //aca is Answer Choice Array.  One aca per question.
   qtDbDataObj: object = {}
-  qtDbDataQuestNbr = '?'
-  qtDbDataQuestTxt = '?'
-  qtDbDataPreQuest = '?'
-  qtDbDataSubset = '???'
-  qtDbRef = '?'
-  qtDbDataAca = [] 
-  qtDbDataSeq = '?' 
-  qtDbDataAcaPointVals = [] 
-  qtDbDataAccum = []
+  // qtDbDataQuestNbr = '?'
+  // qtDbDataQuestTxt = '?'
+  // qtDbDataPreQuest = '?'
+  // qtDbDataSubset = '???'
+  // qtDbRef = '?'
+  // qtDbDataAca = [] 
+  // qtDbDataSeq = '?' 
+  // qtDbDataAcaPointVals = [] 
+  // qtDbDataAccum = []
   allQuestions = []
   activeQuestions = []
   showQuestHtml = true
   showAnswerGroupHtml = true 
   showWrapUpHtml = false
   showDiagHtml = true
-  todaysDate = new Date().toJSON().split("T")[0];
+  todaysDate = new Date().toJSON().split("T")[0]
   answerObj: object = {}
   accumObj: object = {}
   scoreObj: object = {}
@@ -70,22 +70,20 @@ export class QuestComponent implements OnInit {
   // in this pgm, when reading from fauna db,
   // maybe read into xxxObj first, cuz xxxObj has the rec layout.
   // in case of mismatch between fauna and this pgm,
-  // we might have errors that are less weird.
+  // we will have errors, but maybe they will be less weird.
 
   constructor() { }
 
   ngOnInit(): void {
     this.setQueryStringParms()
-    this.launchQtRead06(Event) //fetch subsets from db
-    // that chains launchQtRead05 (questions)
-    //       that chains launchQtRead07 (rules) 
-    //         
-  // cuz of async, dont fetch more db data here.
-  // hmmm.... billy maybe chain the asyn events more neatly,
-  // and do it here.
-  // read subsets.  when done, read rules. when done, read questions.
-  // read up on technique to chain promise oriented paragraphs.
-  }
+    this.LaunchQtReadSubsets(Event) //fetch subsets from db
+    // that chains LaunchQtReadQuestions (questions)
+    //       that chains LaunchQtReadRules (rules) 
+    // cuz of promise-oriented fauna, dont fetch more db data here.
+    // someday chain the asyn events in an organized way.
+    // as of Nov2020 see chain-ish stuff in .then in read06,05,07
+    // read db subsets,  db rules,  db questions.
+  } // end ngOnInit
   
   setQueryStringParms(){
     let locSearchResult = new URLSearchParams(location.search)
@@ -99,15 +97,17 @@ export class QuestComponent implements OnInit {
       this.qid = locSearchResultQid
     }
     if (locSearchResultIcode != null) {
-      this.iCode = locSearchResultIcode
+      this.icode = locSearchResultIcode
     }
-    console.log('this.cust is: ',this.cust)
-    console.log('this.qid is: ',this.qid)
-    console.log('this.iCode is: ',this.iCode)
     // when no querystring, set defaults to 1
     // not a great idea when we get more.
     if(this.cust == '?'){this.cust = '1'}
     if(this.qid == '?'){this.qid = '1'}
+    if(this.icode == '?'){this.icode = '90210'}
+    console.log('this.cust is: ',this.cust)
+    console.log('this.qid is: ',this.qid)
+    console.log('this.icode is: ',this.icode)
+
   }
 
   heAnsweredOneQuestion(hisAnsAcaIxFromHtml) {
@@ -120,7 +120,8 @@ export class QuestComponent implements OnInit {
       this.curQuestTxt = this.activeQuestions[this.aqx].questTxt
       this.curPreQuest = this.activeQuestions[this.aqx].preQuest 
       this.curAca = this.activeQuestions[this.aqx].aca 
-    } else {
+    } else { //we are at the end of active questions
+        // console.log('124 we are at the end of a subset ')
         this.closeOutActiveAndPrepNextQuestions()
         if (this.activeQuestions.length > 0) {  //we have more questions
           this.aqx = 0
@@ -134,9 +135,10 @@ export class QuestComponent implements OnInit {
   } // end heAnsweredOneQuestion
 
   closeOutActiveAndPrepNextQuestions(){
-    console.log('done with active sets of questions.')
     for (let i = 0; i < this.subsetArray.length; i++) {
-      if (this.subsetArray[i].subsetRound > 0) {
+      if (this.subsetArray[i].ssStatusQnA == 'active') {
+          // console.log('143 setting status to done for subset:')
+        console.log( this.subsetArray[i].subset)
         this.subsetArray[i].ssStatusQnA = 'done'
       }
     }
@@ -154,7 +156,7 @@ export class QuestComponent implements OnInit {
     let tdif = 
       ( this.answerEndTime - 
         this.answerStartTime ) / 1000
-    this.timeGap = Math.round(tdif);
+    this.timeGap = Math.round(tdif)
     this.answerStartTime = performance.now()
   }  // end calcAnswerTimeGap
 
@@ -185,6 +187,7 @@ export class QuestComponent implements OnInit {
   buildAnswerFields(){
     this.answerObj = 
     {
+      "cust": this.cust,
       "qid": this.activeQuestions[this.aqx].qid,
       "questNbr": this.activeQuestions[this.aqx].questNbr,
       "answerDate": this.todaysDate,
@@ -251,7 +254,7 @@ export class QuestComponent implements OnInit {
   findAccumAndAddPoints(accumParmIn,ansPointsParmIn,ansTimeGapParmIn){
     console.log('running findAccumAndAddPoints')
     let pos = this.accumArray
-      .map(function(a) { return a.accum }).indexOf(accumParmIn);
+      .map(function(a) { return a.accum }).indexOf(accumParmIn)
     this.accumArray[pos].accumScore =
       this.accumArray[pos].accumScore + ansPointsParmIn
     this.accumArray[pos].accumQuestCnt =  
@@ -279,6 +282,7 @@ export class QuestComponent implements OnInit {
   buildScoreFields(i){
     this.scoreObj = 
     {
+      'cust': this.cust,
       'qid' : this.qid,
       'quserId' : this.qUserId,
       'testDate': this.todaysDate,
@@ -310,24 +314,63 @@ export class QuestComponent implements OnInit {
 
   findNextRoundOfActiveQuestions(){
     console.log('running findNextRoundOfActiveQuestions')
+    let nextMainSubset = '?'
     this.activeQuestions.length = 0   
     this.subsetRound = this.subsetRound + 1
-    //find the next bunch of subsets to ask
+    //find the next bunch of subsets (those with rules) to ask
     this.subsetTempArray = []
     for (let i = 0; i < this.subsetArray.length; i++) {
       if (this.subsetArray[i].filterInYn == 'y' 
       &&  this.subsetArray[i].ssStatusQnA == 'pending') {
         this.subsetArray[i].subsetRound = this.subsetRound
         this.subsetTempArray.push(this.subsetArray[i].subset)
+        this.subsetArray[i].ssStatusQnA = 'active'
+        // console.log('330 subsetArray')
+        // console.table(this.subsetArray)
+
       }
     }  // end for loop subsetArray
 
-   // clever way to pass subsetTempVarArray into .filter  (comma!)
-   let subsetTempVarArray = this.subsetTempArray,
-   tempActiveQuestions = this.allQuestions.filter(function(q) {
+    // clever way to pass subsetTempVarArray into .filter  (comma!)
+    let subsetTempVarArray = this.subsetTempArray,
+    tempActiveQuestions = this.allQuestions.filter(function(q) {
       return  subsetTempVarArray.includes(q.subset)
-    });
+    })
     this.activeQuestions = tempActiveQuestions
+
+    if (this.activeQuestions.length == 0){
+      // we have not triggered any follow On subsets, 
+      // or we are now done with those, for now. time to move on and
+      // find a not-yet-asked subset (like main2)
+      // we are looking for subsets without conditional rules.
+      // these type of subsets are always asked.
+      for (let i = 0; i < this.subsetArray.length; i++) {
+        if (this.subsetArray[i].ssStatusQnA == 'pending') {
+          let rai =
+          this.rulesArray.findIndex(obj => obj.subset === this.subsetArray[i].subset)
+          if (rai == -1) { //subset has no rule.  lets turn it on.
+            // console.log(this.subsetArray[i].subset)
+            if (nextMainSubset == '?') {
+              // console.log(' we hit the next main subset.')
+              nextMainSubset = this.subsetArray[i].subset
+              this.subsetArray[i].ssStatusQnA = 'active'
+              this.subsetArray[i].filterInYn = 'y'
+            } // end if nextMainSubset
+          } // end if rai -1 subset has no rule. (like a mainX subset)
+        } // end if status == pending
+      }  //end for subsetArray loop
+    } // end if this.activeQuestions.length == 0
+    
+    if (nextMainSubset != '?')  {
+      console.log('nextMainSubset hit:',nextMainSubset)
+      //we need to set active questions
+      // to the first subset that has no conditional rule:
+      let temp2ActiveQuestions = 
+        this.allQuestions.filter(function(q) {
+          return  q.subset == nextMainSubset
+      })
+      this.activeQuestions = temp2ActiveQuestions       
+    }
   }
 
   wrapUp(){
@@ -344,72 +387,22 @@ export class QuestComponent implements OnInit {
 
 ////////////////////////////////////////////
 
-    fetchQtDb4(){ // re-arrange qtDb stuff
-      this.launchQtRead03q(Event)
-    } 
+/////////////////////////////////////////////////////////////////
+// The first argument of .then 
+// is a function that runs when the promise is resolved, 
+// and receives the result.
+////////////////////////////////////////////////////////////////
 
-    launchQtRead03q = (e) => { //do not use
-      // example of reading one rec at a time.
-      // not really needed for fetching one question at a time.
-      // might need a similar paragraph to find single answer rec.
-      console.log('running launchQtRead03q')
-
-      // do we really need to keep track of ref?
-      // i mean, we will have indexes on tables,
-      // and we will search by these indexes.
-      // i think the qtDbRef is just for testing.
-
-      // let qtDbRefParm = '276380634185728512'
-      // let qtDbRefParm = '276403382834430483'
-      let qtDbRefParm = '279739273992733188'
-
-      api.qtRead03(qtDbRefParm)
-        .then 
-        (   (qtDbRtnObj) => 
-          {
-            //console.log(' try qtRead03 read = with:' + qtDbRefParm) 
-            //console.table(qtDbRtnObj) 
-            this.qtDbDataObj = qtDbRtnObj.data
-            this.qtDbDataQuestTxt = qtDbRtnObj.data.questTxt
-            this.qtDbDataQuestNbr = qtDbRtnObj.data.questNbr
-            this.qtDbDataPreQuest = qtDbRtnObj.data.preQuest
-            this.qtDbDataSubset = qtDbRtnObj.data.subset
-            this.qtDbDataAcaPointVals = qtDbRtnObj.data.acaPointVals
-            this.qtDbDataAca = qtDbRtnObj.data.aca
-            this.qtDbDataSeq = qtDbRtnObj.data.seq
-            this.qtDbDataAccum = qtDbRtnObj.data.accum
-            this.qtDbRef = qtDbRtnObj.ref["@ref"].id 
-            //console.log('qtDbData: ' + JSON.stringify(this.qtDbDataObj)) 
-            //console.log('qtDbDataAca: ' + JSON.stringify(this.qtDbDataAca)) 
-            //this.appendOneqtDbQuestionToActiveQuestions()
-            //console.log('curAca: ' + JSON.stringify(this.curAca)) 
-            // return from this on-the-fly functon is implied  
-          }
-        )
-      .catch((e) => {
-        console.log('qtRead03 error. qtDbRefParm: ' + qtDbRefParm + e)
-      })
-    } 
-
-    /////////////////////////////////////////////////////////////////
-    // The first argument of .then 
-    // is a function that runs when the promise is resolved, 
-    // and receives the result.
-    ////////////////////////////////////////////////////////////////
-
-  launchQtRead05 = (e) => {
-    api.qtReadQuestions(this.qid)
+  LaunchQtReadQuestions = (e) => {
+    api.qtReadQuestions(this.cust,this.qid)
         .then 
         (   (qtDbRtnObj) => 
           {
             console.log(' running .then of qtReadQuestions') 
             //this.subset = this.subsetArray[this.sax].subset
-            //console.log('subset is:',this.subset)
             this.loadQuestionsFromDbToAllQuestions(qtDbRtnObj)
             this.buildListOfAccumsFromAllQuestions()
-            //console.log('accums 458')
-            //console.table(this.accumArray)
-            this.launchQtRead07(event) //rules
+            this.LaunchQtReadRules(event) //rules
             console.table(this.allQuestions)
             this.findNextRoundOfActiveQuestions()
             if (this.activeQuestions.length > 0) {
@@ -426,32 +419,26 @@ export class QuestComponent implements OnInit {
 
   loadQuestionsFromDbToAllQuestions(qtDbObj){
     //console.log('running loadQuestionsFromDbToAllQuestions')
-    // input qtDbObj from database > output allQuestions array.
+    // input is qtDbObj from database and output allQuestions array.
     // get here after .then of reading db,
     // so qtDbObj is ready to use.
     this.allQuestions.length = 0 //blank out array, then load it
     for (let i = 0; i < qtDbObj.length; i++) {
       this.allQuestions.push(qtDbObj[i].data)
     }
-    //
-    // console.log('allQuestions:')
-    // console.table(this.allQuestions)
-    // console.log('done with loadQuestionsFromDbToAllQuestions')
-  }
+  }  // end loadQuestionsFromDbToAllQuestions
 
   buildListOfAccumsFromAllQuestions(){
     console.log('running buildListOfAccumsFromAllQuestions')
     // read all questions array, find the unique accumulators.
     // push a newly discovered accum into accumArray.
-    //console.log('allQuestions 495')
-    //console.table(this.allQuestions)
     for (let i = 0; i < this.allQuestions.length; i++) {
       // this question has an array of accumulators.
       for (let j = 0; j < this.allQuestions[i].accum.length; j++) {
         // find the accum in accumArray. if not found, add it.
         let position = 
           this.accumArray.map(function(a) { return a.accum })
-          .indexOf(this.allQuestions[i].accum[j]);
+          .indexOf(this.allQuestions[i].accum[j])
         if (position < 0){
             this.accumObj = { 
               'accum': this.allQuestions[i].accum[j],
@@ -467,33 +454,32 @@ export class QuestComponent implements OnInit {
     }
   } //end buildListOfAccumsFromAllQuestions
 
-  launchQtRead06 = (e) => {
-    //console.log('running launchQtRead6')
-    api.qtReadSubsets(this.qid)
+  LaunchQtReadSubsets = (e) => {
+    //console.log('running LaunchQtReadSubsets')
+    api.qtReadSubsets(this.cust,this.qid)
         .then 
         (   (qtDbRtnObj) => 
           {
             console.log(' running .then of api.qtReadSubsets') 
             this.buildListOfSubsets(qtDbRtnObj)
-            //console.table(this.subsetArray)
-            //console.log(this.subsetArray[0].subset)
-
-            //this.subset = this.subsetArray[0].subset //first subset
-            this.launchQtRead05(Event) // read questions
-
+            this.LaunchQtReadQuestions(Event) // read questions
           }
         )
         .catch((e) => {  // api.qtReadSubsets returned an error 
           console.log('api.qtReadSubsets error.' + e)
         })
-  } //end launchQtRead06
+  } //end LaunchQtReadSubsets
 
   buildListOfSubsets(qtDbObj){
     console.log('running buildListOfSubsets')
     this.subsetsFromDb.length = 0 //start out with an empty array.
     for (let i = 0; i < qtDbObj.length; i++) {
       // we are reading as if there are multiple recs from db,
-      // but we expect to fetch just one (for this qid)
+      // but we expect to fetch just one (for this qid), like:
+      // {
+      //   qid: "1",
+      //   subsets: ["main1", "parakeet2", "parakeet3", "doggySet"]
+      // }
       this.subsetsFromDb.push(qtDbObj[i].data)
     }
     for (let j = 0; j < this.subsetsFromDb[0].subsets.length; j++) {
@@ -502,120 +488,105 @@ export class QuestComponent implements OnInit {
         'filterInYn' : 'n', // variably overwritten below
         'ssStatusQnA' : 'pending',
         'subsetRound' : 0
-      }
+      } // end subsetObj
       this.subsetArray.push( this.subsetObj )
-    }
-
-    this.subsetArray[0].filterInYn = 'y' //billy cheating here main
-    this.subsetArray[0].subsetRound = 1 //billy cheating here main
-    console.log('we just built subsetArray:')
+    } //end for loop j
+    this.subsetArray[0].filterInYn = 'y' //billy cheating here main1
+    this.subsetArray[0].subsetRound = 1 //billy cheating here main1
+    console.log('result of buildListOfSubsets')
     console.table(this.subsetArray)
   }  // end buildListOfSubsets
 
-  launchQtRead07 = (e) => {
-    console.log('running launchQtRead07')
-    api.qtReadRules(this.qid)
+  LaunchQtReadRules = (e) => {
+    console.log('running LaunchQtReadRules')
+    api.qtReadRules(this.cust,this.qid)
       .then 
         (   (qtDbRtnObj) => 
           {
             console.log(' running .then of api.qtReadRules') 
             this.buildListOfRules(qtDbRtnObj)
-            //this.applyRulesToAccums() // might not need this on first itme.
-            //this.subset = this.subsetArray[0].subset //first rule?
-            // maybe turn on only the 'main' subset here?
-            // after rules & subsets at startup, 
           }
         )
         .catch((e) => {  // api.qtReadRules returned an error 
           console.log('api.qtReadRules error.' + e)
         })
 
-  } //end launchQtRead07
+  } //end LaunchQtReadRules
 
   buildListOfRules(qtDbObj){
-    //console.log('running buildListOfRuless')
+    console.log('running buildListOfRules')
     for (let i = 0; i < qtDbObj.length; i++) {
       this.rulesArray.push(qtDbObj[i].data)
     }
-    //console.log('we just built rulesArray:')
-    //console.table(this.rulesArray)
- 
+    console.log('530 I built these rules:')
+    console.table(this.rulesArray)
   } // end buildListOfRules
 
   applyRulesToAccumsAndSubsets(){
-    console.log('running applyRulesToAccumsAndSubsets')
+    console.log('running applyRulesToAccumsAndSubsets 488')
+    console.table(this.accumArray)
     // two arrays here.  accumArray  rulesArray
     // accumArray[].accumScore is already set.
     // run thru accumArray and set accum.threshHit 'y' 
     // for accums that have hit a rule threshHold.
     for (let i = 0; i < this.accumArray.length; i++) {
-      // console.log('try lookup on scoresArray:')
-      // console.table(this.scoresArray)
-      // let sai = this.scoresArray //scores array index
-      // .map(function(sa) { return sa.accum }).indexOf(this.accumArray[i].accum)
-      // console.log('sai: ',sai)
-      // if (sai > -1){
-      //   console.log ('hey, ready to check rule and update accum')
-      //   console.log('accum:', this.scoresArray[sai].accum)
-      //   console.log('score:', this.scoresArray[sai].score)
-        // find this accum in rulesArray to get rulesArray.thresh
-      let rai = this.rulesArray //rules array index
-      .map(function(ra) { return ra.accum }).indexOf(this.accumArray[i].accum)
-        if(rai > -1) {
-          if(this.accumArray[i].accumScore >= this.rulesArray[rai].thresh) { 
-            //console.log('bingo we hit a thresh')
-            // billy >= instead of rules.oper means remove oper from db
-            //console.log('we want to filterIn subset:',this.rulesArray[rai].subset)
-            this.accumArray[i].accumThreshHit = 'y'
-            this.subsetToFilterIn = this.rulesArray[rai].subset
-            this.applyAccumToSubsets() // set subset filterInYn to y
-
-          } //end if scoresArray
-        } // end if rai > -1
-      //} // end if sai > -1
+      // find this accum in rulesArray to get rulesArray.thresh
+      //rules array index:
+      let rai = this.rulesArray 
+      .map(function(ra) { return ra.accum })
+      .indexOf(this.accumArray[i].accum)
+      if(rai > -1) { this.checkAccumAgainstRule(rai,i) }
     } // end for loop on accumArray
-
-    // after this paragrf,  match accums to subsets during qNa.
-    // as we loop thru subsets, check accumArray.threshHit. 
-    // where are we looping thru subsets? 
-    // seems like we rely on this.subset during qNa.
-    // so whatever is setting this.subset should skip past
-    // those where the matching accumArray.threshHit <> 'y'.
-    // I mean, revisit where we set this.subset in lines 122 450
-       
-  // rules say when a scoreboard accum should trigger a subset.
-  // rules control which subsets are in play.
-  //  we should ask questions for a limited set of subsets.
-  // after scoring, accum.accumScore tells us how many points
-  // were achieved.  that's already working.
-  //  a RULE is a definition of whether a subset should be asked.
-  // if accumScore > thresh, then filter-in a subset.
-  // each subset should have a rule.  see db qtRules for layout.
-  // example rules:
-  // qid 1 subset ss1 - if accum main > thresh then subset ss1 is IN
-  // qid 1 subset ss2 - if accum main > thresh then subset ss2 is IN
-  // qid 1 subset ssParakeet2 - 
-  //    if accum pk1 > thresh then this subset ssParakeet2 is IN
-  // qid 1 subset ssParakeet3 - 
-  //    if accum pk2 > thresh then this subset ssParakeet3 is IN
-    //console.log('done with applyRulesToAccumsAndSubsets. accumArray:')
-    //console.table(this.accumArray)
   } // end applyRulesToAccumsAndSubsets
+
+  checkAccumAgainstRule(rai,i){
+    console.log('running checkAccumAgainstRule')
+    // console.log(this.rulesArray[rai].accum)
+    // console.log(this.rulesArray[rai].oper)
+    if (this.rulesArray[rai].oper == '>='
+    &&  this.accumArray[i].accumScore >= this.rulesArray[rai].thresh) { 
+      this.accumArray[i].accumThreshHit = 'y'
+    } //end if oper >=
+    if (this.rulesArray[rai].oper == '<='
+    &&  this.accumArray[i].accumScore <= this.rulesArray[rai].thresh) { 
+      this.accumArray[i].accumThreshHit = 'y'
+    } //end if oper <=
+    if (this.rulesArray[rai].oper == '!='
+    &&  this.accumArray[i].accumScore != this.rulesArray[rai].thresh) { 
+      this.accumArray[i].accumThreshHit = 'y'
+    } //end if oper !=
+    if (this.rulesArray[rai].oper == '=='
+    &&  this.accumArray[i].accumScore == this.rulesArray[rai].thresh) { 
+      // console.log('bingoo hit thresh ==')
+      this.accumArray[i].accumThreshHit = 'y'
+    } //end if oper ==
+    if (this.rulesArray[rai].oper == '<'
+    &&  this.accumArray[i].accumScore < this.rulesArray[rai].thresh) { 
+      this.accumArray[i].accumThreshHit = 'y'
+    } //end if oper <
+    if (this.rulesArray[rai].oper == '>'
+    &&  this.accumArray[i].accumScore > this.rulesArray[rai].thresh) { 
+      this.accumArray[i].accumThreshHit = 'y'
+    } //end if oper >
+
+    if ( this.accumArray[i].accumThreshHit == 'y') {
+    this.subsetToFilterIn = this.rulesArray[rai].subset
+    this.applyAccumToSubsets() // set subset filterInYn to y
+    }
+  }
 
   applyAccumToSubsets(){
     // come into this para with subsetToFilterIn
     // and use it to set one subsetArray.filterInYn
      console.log('running applyAccumToSubsets')
-     console.log(this.subsetToFilterIn)
+    //  console.log(this.subsetToFilterIn)
     // console.log('find subset and set filterIn to y',this.subsetToFilterIn)
     let ssi =
-      this.subsetArray.findIndex(obj => obj.subset === this.subsetToFilterIn);
+      this.subsetArray.findIndex(obj => obj.subset === this.subsetToFilterIn)
     this.subsetArray[ssi].filterInYn = 'y'
     //console.table(this.subsetArray)
     //   console.log('ssi',ssi)
     // console.log(this.subsetArray[ssi])
-
-
 
   } // end applyAccumToSubsets
 
@@ -627,5 +598,37 @@ export class QuestComponent implements OnInit {
       this.showDiagHtml = true
     }
   } // end setDiagnosticsOnOff
+
+
+  massDeleteAnswers = (e) => {
+      alert('gonna mass delete  answers...')
+      console.log('running massDeleteAnswers')
+      api.qtMassDeleteAnswers(this.cust,this.qid)
+        .then 
+          (   (qtDbRtnObj) => 
+            {
+              console.log(' running .then of api.qtMassDeleteAnswers') 
+            }
+          )
+          .catch((e) => {  // api.qtMassDeleteAnswers returned an error 
+            console.log('api.qtDeleteAllAnswers error.' + e)
+          })
+  
+  } // end massDeleteAnswers
+
+  massDeleteScores = (e) => {
+    alert('gonna delete Scores...')
+    console.log('running massDeleteScores')
+    api.qtMassDeleteScores(this.cust,this.qid)
+      .then 
+        (   (qtDbRtnObj) => 
+          {
+            console.log(' running .then of api.qtMassDeleteScores') 
+          }
+        )
+        .catch((e) => {  // api.qtMassDeleteScores returned an error 
+          console.log('api.qtMassDeleteScores error.' + e)
+        })
+} // end massDeleteScores
 
 } //end class QuestComponent
