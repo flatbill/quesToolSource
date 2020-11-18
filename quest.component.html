@@ -23,34 +23,81 @@
     <br>
 
   </div>
-  <div class="columns">
-    <div class="column ">
-      <div class="has-background-info">q nbr</div>
-      <ul >
-        <li *ngFor="let q of activeQuestions">{{q.questNbr}}</li>
-      </ul>
-    </div>
-    <div class="column">
-      <div class='has-background-info'>q txt</div>
-      <ul>
-        <li *ngFor="let q of activeQuestions">{{q.questTxt}}</li>
-      </ul>
-      
-    </div>
-    <div class="column">
-      <div class='has-background-info'>q susbset</div>
-      <ul >
-        <li *ngFor="let q of activeQuestions">{{q.subset}}</li>
-      </ul>
-    </div>
-    <div class="column">
-      <div class='has-background-info'>q accum</div>
-      <ul >
-        <li *ngFor="let q of activeQuestions">{{q.accum[0]}}</li>
-      </ul>
 
-    </div>
-  </div>
+  <table class='table is-striped  is-bordered'>
+    <thead class='has-background-info'>
+      <tr>
+        <th>subset</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let s of subsetArray">
+        <th> {{s.subset}} </th>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class='table is-striped  is-bordered'>
+    <thead class='has-background-info'>
+      <tr>
+        <th>nbr</th>
+        <th>preQuest</th>
+        <th>questTxt</th>
+        <th>subset</th>
+        <th>accum</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let q of allQuestions">
+        <th> {{q.questNbr}} </th>
+        <th> {{q.preQuest}} </th>
+        <th>  {{q.questTxt}} </th>
+        <th>  {{q.subset}} </th>
+        <th>  {{q.accum[0]}} </th>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class='table is-striped  is-bordered'>
+    <thead class='has-background-info'>
+      <tr>
+        <th>accum</th>
+        <th>oper</th>
+        <th>thresh</th>
+        <th>subset</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of rulesArray">
+        <th> {{r.accum}}   </th>
+        <th> {{r.oper}}    </th>
+        <th>  {{r.thresh}} </th>
+        <th>  {{r.subset}} </th>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class='table is-striped  is-bordered'>
+    <thead class='has-background-info'>
+      <tr>
+        <th>nbr</th>
+        <th>preQuest</th>
+        <th>questTxt</th>
+        <th>subset</th>
+        <th>accum</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let q of activeQuestions">
+        <th> {{q.questNbr}} </th>
+        <th> {{q.preQuest}} </th>
+        <th>  {{q.questTxt}} </th>
+        <th>  {{q.subset}} </th>
+        <th>  {{q.accum[0]}} </th>
+      </tr>
+    </tbody>
+  </table>
+
 </section>
 
 <section *ngIf="showQuestHtml" class="hero">

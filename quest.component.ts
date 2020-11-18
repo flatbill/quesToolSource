@@ -10,24 +10,14 @@ export class QuestComponent implements OnInit {
   cust = '?'
   qid = '?'
   icode = '?'
-  qUserId = 'DanSelzer'
+  qUserId = 'DaveSelzer'
   hisAns = '0'
-  //hisAnsAcaIndex = 0
   hisAnsPoints = 0
   aqx = 0 // active question index
   curQuestTxt = '... loading questions ...'
   curPreQuest = ''
   curAca = []   //aca is Answer Choice Array.  One aca per question.
   qtDbDataObj: object = {}
-  // qtDbDataQuestNbr = '?'
-  // qtDbDataQuestTxt = '?'
-  // qtDbDataPreQuest = '?'
-  // qtDbDataSubset = '???'
-  // qtDbRef = '?'
-  // qtDbDataAca = [] 
-  // qtDbDataSeq = '?' 
-  // qtDbDataAcaPointVals = [] 
-  // qtDbDataAccum = []
   allQuestions = []
   activeQuestions = []
   showQuestHtml = true
@@ -81,8 +71,7 @@ export class QuestComponent implements OnInit {
     //       that chains LaunchQtReadRules (rules) 
     // cuz of promise-oriented fauna, dont fetch more db data here.
     // someday chain the asyn events in an organized way.
-    // as of Nov2020 see chain-ish stuff in .then in read06,05,07
-    // read db subsets,  db rules,  db questions.
+    // as of Nov2020 see chain-ish stuff in .then of launch paras.
   } // end ngOnInit
   
   setQueryStringParms(){
@@ -146,6 +135,8 @@ export class QuestComponent implements OnInit {
     this.storeScores()
     this.applyRulesToAccumsAndSubsets() // set accumThreshHit to y or n  
     this.findNextRoundOfActiveQuestions()
+    this.sortRoundOfActiveQuestions()
+
     this.curQuestTxt = ''
     this.curPreQuest = ''
     this.curAca = []
@@ -325,9 +316,6 @@ export class QuestComponent implements OnInit {
         this.subsetArray[i].subsetRound = this.subsetRound
         this.subsetTempArray.push(this.subsetArray[i].subset)
         this.subsetArray[i].ssStatusQnA = 'active'
-        // console.log('330 subsetArray')
-        // console.table(this.subsetArray)
-
       }
     }  // end for loop subsetArray
 
@@ -370,8 +358,23 @@ export class QuestComponent implements OnInit {
           return  q.subset == nextMainSubset
       })
       this.activeQuestions = temp2ActiveQuestions       
-    }
-  }
+    } // end if nextMainSubset != '?'
+  } // end findNextRoundOfActiveQuestions
+
+  sortRoundOfActiveQuestions(){
+    //
+    function compareSeq(a, b) {
+      let comparison = 0;
+      if (a.questSeq > b.questSeq) {
+        comparison = 1;
+      } else if (a.questSeq < b.questSeq) {
+        comparison = -1;
+      }
+      return comparison;
+    } // end function compareSeq
+    
+    this.activeQuestions.sort(compareSeq);
+  }  // end sortRoundOfActiveQuestions
 
   wrapUp(){
     console.log('running wrapUp')
@@ -384,8 +387,6 @@ export class QuestComponent implements OnInit {
     console.log('final subsets in subsetArray:')
     console.table(this.subsetArray)
   } // end wrapUp
-
-////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////
 // The first argument of .then 
@@ -405,6 +406,8 @@ export class QuestComponent implements OnInit {
             this.LaunchQtReadRules(event) //rules
             console.table(this.allQuestions)
             this.findNextRoundOfActiveQuestions()
+            this.sortRoundOfActiveQuestions()
+
             if (this.activeQuestions.length > 0) {
               this.curQuestTxt = this.activeQuestions[0].questTxt
               this.curPreQuest = this.activeQuestions[0].preQuest
@@ -425,6 +428,7 @@ export class QuestComponent implements OnInit {
     this.allQuestions.length = 0 //blank out array, then load it
     for (let i = 0; i < qtDbObj.length; i++) {
       this.allQuestions.push(qtDbObj[i].data)
+      // console.log('questSeq:', this.allQuestions[i].questSeq)
     }
   }  // end loadQuestionsFromDbToAllQuestions
 
@@ -598,7 +602,6 @@ export class QuestComponent implements OnInit {
       this.showDiagHtml = true
     }
   } // end setDiagnosticsOnOff
-
 
   massDeleteAnswers = (e) => {
       alert('gonna mass delete  answers...')
